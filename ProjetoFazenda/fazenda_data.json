@@ -23,6 +23,11 @@
             "id": "irr_002",
             "local": "Setor B",
             "status": "desligado"
+        },
+        {
+            "id": "irr_003",
+            "local": "Setor C",
+            "status": "ligado"
         }
     ],
     "sensores_ambiente": [
@@ -31,6 +36,13 @@
             "local": "Esta\u00e7\u00e3o Central",
             "temperatura": 28.1,
             "umidade_ar": 70,
+            "ultima_leitura": "2023-10-27T08:10:00Z"
+        },
+        {
+            "id": "amb_002",
+            "local": "Esta\u00e7\u00e3o Sul",
+            "temperatura": 26.1,
+            "umidade_ar": 75,
             "ultima_leitura": "2023-10-27T08:10:00Z"
         }
     ],
