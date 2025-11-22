@@ -1,0 +1,51 @@
+{
+    "sensores_solo": [
+        {
+            "id": "solo_001",
+            "local": "Setor A",
+            "umidade": 65,
+            "ultima_leitura": "2023-10-27T08:00:00Z"
+        },
+        {
+            "id": "solo_002",
+            "local": "Setor B",
+            "umidade": 40,
+            "ultima_leitura": "2023-10-27T08:05:00Z"
+        }
+    ],
+    "irrigadores": [
+        {
+            "id": "irr_001",
+            "local": "Setor A",
+            "status": "desligado"
+        },
+        {
+            "id": "irr_002",
+            "local": "Setor B",
+            "status": "desligado"
+        }
+    ],
+    "sensores_ambiente": [
+        {
+            "id": "amb_001",
+            "local": "Esta\u00e7\u00e3o Central",
+            "temperatura": 28.1,
+            "umidade_ar": 70,
+            "ultima_leitura": "2023-10-27T08:10:00Z"
+        }
+    ],
+    "historico_solo_001": [
+        {
+            "timestamp": "2023-10-27T07:00:00Z",
+            "umidade": 60
+        },
+        {
+            "timestamp": "2023-10-27T07:30:00Z",
+            "umidade": 62
+        },
+        {
+            "timestamp": "2023-10-27T08:00:00Z",
+            "umidade": 65
+        }
+    ]
+}

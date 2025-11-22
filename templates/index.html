@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Fazenda Inteligente</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Arial', sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 30px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background-color: #ecf0f1; border-left: 5px solid #3498db; border-radius: 5px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { margin-top: 0; color: #34495e; }
+        .card p { margin-bottom: 5px; font-size: 0.9em; }
+        .card .value { font-size: 1.8em; font-weight: bold; color: #2980b9; }
+        .status-on { color: #27ae60; font-weight: bold; }
+        .status-off { color: #e74c3c; font-weight: bold; }
+        .button-group { margin-top: 10px; display: flex; gap: 10px;}
+        .button-group button { background-color: #3498db; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; transition: background-color 0.3s ease; }
+        .button-group button:hover { background-color: #2980b9; }
+        canvas { max-width: 100%; height: auto; }
+        .chart-container { margin-top: 40px; background-color: #ecf0f1; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard da Fazenda Inteligente</h1>
+        <p>Monitoramento e controle em tempo (quase) real da sua fazenda.</p>
+
+        <h2>Sensores de Solo</h2>
+        <div id="sensores-solo-container" class="card-grid">
+            </div>
+
+        <h2>Irrigadores</h2>
+        <div id="irrigadores-container" class="card-grid">
+            </div>
+
+        <h2>Sensores de Ambiente</h2>
+        <div id="sensores-ambiente-container" class="card-grid">
+            </div>
+
+        <h2>Histórico de Umidade do Solo (solo_001)</h2>
+        <div class="chart-container">
+            <canvas id="historicoUmidadeChart"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin; // O domínio da sua API (Colab ngrok URL)
+        let historicoChart; // Variável para o gráfico
+
+        // --- Funções para buscar dados ---
+
+        async function fetchData(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error("Erro ao buscar dados:", error);
+                return null;
+            }
+        }
+
+        async function updateSensoresSolo() {
+            const sensores = await fetchData(`${API_BASE_URL}/api/sensores/solo`);
+            const container = document.getElementById('sensores-solo-container');
+            container.innerHTML = '';
+            if (sensores) {
+                sensores.forEach(s => {
+                    container.innerHTML += `
+                        <div class="card">
+                            <h3>Sensor Solo: ${s.id}</h3>
+                            <p>Local: ${s.local}</p>
+                            <p>Umidade: <span class="value">${s.umidade}%</span></p>
+                            <p>Última Leitura: ${new Date(s.ultima_leitura).toLocaleString()}</p>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function updateIrrigadores() {
+            const irrigadores = await fetchData(`${API_BASE_URL}/api/irrigadores`);
+            const container = document.getElementById('irrigadores-container');
+            container.innerHTML = '';
+            if (irrigadores) {
+                irrigadores.forEach(i => {
+                    container.innerHTML += `
+                        <div class="card">
+                            <h3>Irrigador: ${i.id}</h3>
+                            <p>Local: ${i.local}</p>
+                            <p>Status: <span class="status-${i.status}">${i.status.toUpperCase()}</span></p>
+                            <div class="button-group">
+                                <button onclick="setIrrigadorStatus('${i.id}', 'ligado')">Ligar</button>
+                                <button onclick="setIrrigadorStatus('${i.id}', 'desligado')">Desligar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function updateSensoresAmbiente() {
+            const sensores = await fetchData(`${API_BASE_URL}/api/sensores/ambiente`);
+            const container = document.getElementById('sensores-ambiente-container');
+            container.innerHTML = '';
+            if (sensores) {
+                sensores.forEach(s => {
+                    container.innerHTML += `
+                        <div class="card">
+                            <h3>Sensor Ambiente: ${s.id}</h3>
+                            <p>Local: ${s.local}</p>
+                            <p>Temperatura: <span class="value">${s.temperatura}°C</span></p>
+                            <p>Umidade Ar: <span class="value">${s.umidade_ar}%</span></p>
+                            <p>Última Leitura: ${new Date(s.ultima_leitura).toLocaleString()}</p>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function updateHistoricoUmidadeChart() {
+            const historico = await fetchData(`${API_BASE_URL}/api/sensores/solo/solo_001/historico`);
+            if (historico) {
+                const labels = historico.map(h => new Date(h.timestamp).toLocaleTimeString());
+                const data = historico.map(h => h.umidade);
+
+                if (!historicoChart) {
+                    const ctx = document.getElementById('historicoUmidadeChart').getContext('2d');
+                    historicoChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Umidade do Solo (%)',
+                                data: data,
+                                borderColor: 'rgb(75, 192, 192)',
+                                tension: 0.1,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Umidade (%)'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Horário'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    historicoChart.data.labels = labels;
+                    historicoChart.data.datasets[0].data = data;
+                    historicoChart.update();
+                }
+            }
+        }
+
+
+        // --- Função para enviar comandos (POST) ---
+
+        async function setIrrigadorStatus(id, status) {
+            const response = await fetch(`${API_BASE_URL}/api/irrigadores/${id}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: status })
+            });
+            if (response.ok) {
+                alert(`Irrigador ${id} setado para ${status}!`);
+                updateIrrigadores(); // Atualiza o dashboard para refletir a mudança
+            } else {
+                alert(`Erro ao setar status do irrigador ${id}.`);
+            }
+        }
+
+        // --- Atualização Periódica do Dashboard (Polling) ---
+        function refreshDashboard() {
+            updateSensoresSolo();
+            updateIrrigadores();
+            updateSensoresAmbiente();
+            updateHistoricoUmidadeChart();
+        }
+
+        // Carrega o dashboard ao iniciar e a cada 5 segundos
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshDashboard();
+            setInterval(refreshDashboard, 5000); // Atualiza a cada 5 segundos
+        });
+    </script>
+</body>
+</html>
